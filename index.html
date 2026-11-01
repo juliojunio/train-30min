@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Rutina Tono y Quema</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f1115;
+    color: #e8eaed;
+    padding: 16px;
+    padding-bottom: 80px;
+  }
+  h1 { font-size: 1.3rem; margin: 0 0 4px; font-weight: 700; }
+  .sub { font-size: 0.85rem; color: #9aa0a6; margin-bottom: 16px; }
+
+  /* Pestañas */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    background: #1a1d23;
+    padding: 4px;
+    border-radius: 12px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #9aa0a6;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+  }
+  .tab.active {
+    background: #2563eb;
+    color: #fff;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Tarjeta de rutina */
+  .card {
+    background: #1a1d23;
+    border: 1px solid #2a2e36;
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .card h2 { font-size: 1.1rem; margin: 0 0 4px; }
+  .card .meta { font-size: 0.78rem; color: #9aa0a6; margin-bottom: 12px; }
+
+  /* Rondas / Superseries */
+  .rounds-container {
+    background: #14171c;
+    border: 1px solid #2a2e36;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .rounds-title {
+    font-size: 0.75rem;
+    color: #9aa0a6;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+  .rounds-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .round-btn {
+    background: #1a1d23;
+    border: 1px solid #3a3f48;
+    border-radius: 8px;
+    padding: 10px 4px;
+    color: #9aa0a6;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .round-btn:active:not(:disabled) { background: #23272e; }
+  .round-btn.done {
+    background: #14261c;
+    border-color: #4ade80;
+    color: #4ade80;
+  }
+  .round-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    border-color: #2a2e36;
+  }
+
+  .section-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #9aa0a6;
+    margin: 16px 0 8px;
+    font-weight: 600;
+  }
+
+  .ex {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #23272e;
+    font-size: 0.88rem;
+  }
+  .ex:last-child { border-bottom: none; }
+  .ex .name { flex: 1; font-weight: 500; }
+  .ex .reps { color: #4ade80; font-size: 0.78rem; white-space: nowrap; font-weight: 600; }
+
+  .ex-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .btn-icon {
+    background: #2a2e36;
+    border: none;
+    color: #9aa0a6;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .btn-icon:active { background: #3a3f48; }
+  .btn-icon.video { color: #f59e0b; }
+
+  .ex-detail {
+    display: none;
+    background: #14171c;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 4px 0 8px 0;
+    font-size: 0.8rem;
+    color: #c8ccd2;
+    line-height: 1.4;
+    border-left: 3px solid #4ade80;
+  }
+  .ex-detail.open { display: block; animation: fade 0.2s ease; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+  .note {
+    background: #14261c;
+    border-left: 3px solid #4ade80;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #c8e6d0;
+    margin-top: 14px;
+  }
+  .note.warn {
+    background: #2a1e14;
+    border-left-color: #f59e0b;
+    color: #f5d5a8;
+  }
+
+  /* Progreso */
+  .week-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .week-item {
+    background: #1a1d23;
+    border: 1px solid #2a2e36;
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .week-item:active { background: #23272e; }
+  .week-item.done {
+    border-color: #4ade80;
+    background: #14261c;
+  }
+  .week-item .info { flex: 1; }
+  .week-item .week-label { font-size: 0.72rem; color: #9aa0a6; text-transform: uppercase; letter-spacing: 0.5px; }
+  .week-item .date { font-size: 0.92rem; font-weight: 600; margin-top: 2px; }
+  .week-item .check {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #3a3f48;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    color: transparent;
+    flex-shrink: 0;
+  }
+  .week-item.done .check {
+    background: #4ade80;
+    border-color: #4ade80;
+    color: #0f1115;
+  }
+
+  .progress-summary {
+    background: #1a1d23;
+    border: 1px solid #2a2e36;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .progress-summary .pct { color: #4ade80; font-weight: 700; font-size: 1.3rem; }
+  .progress-summary .label { font-size: 0.78rem; color: #9aa0a6; }
+
+  .btn-reset {
+    background: #2a2e36;
+    border: none;
+    color: #9aa0a6;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<h1>💪 Tono y Quema</h1>
+<div class="sub">Circuito Full Body · 25-30 min</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('rutina', this)">🏋️ Rutina</button>
+  <button class="tab" onclick="switchTab('progreso', this)">📊 Progreso</button>
+</div>
+
+<!-- VISTA RUTINA -->
+<div class="view active" id="view-rutina">
+  <div class="card">
+    <h2>🔥 Circuito Principal</h2>
+    <div class="meta">3 rondas · Descanso 60" entre rondas · 15-20" entre ejercicios</div>
+
+    <!-- CASILLAS DE RONDAS -->
+    <div class="rounds-container">
+      <div class="rounds-title">Registro de hoy (secuencial)</div>
+      <div class="rounds-grid" id="rounds-grid">
+        <button class="round-btn" onclick="toggleRound(0, this)">Ronda 1</button>
+        <button class="round-btn" onclick="toggleRound(1, this)">Ronda 2</button>
+        <button class="round-btn" onclick="toggleRound(2, this)">Ronda 3</button>
+      </div>
+    </div>
+
+    <div class="section-title">Calentamiento (5 min)</div>
+    <div class="ex">
+      <span class="name">Movilidad articular + saltos suaves</span>
+      <span class="reps">5 min</span>
+    </div>
+
+    <div class="section-title">Los 8 Ejercicios</div>
+
+    <!-- 1 Remo -->
+    <div class="ex">
+      <span class="name">Remo con discos</span>
+      <span class="reps" id="reps-1">15</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-1')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('remo con mancuernas', 'ATHLEAN-X')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-1">Pies al ancho de hombros, rodillas ligeramente flexionadas. Sostén un disco en cada mano. Inclina el torso hacia adelante manteniendo la espalda recta y lleva los codos hacia atrás, juntando los omóplatos. Baja lento.</div>
+
+    <!-- 2 Flexiones -->
+    <div class="ex">
+      <span class="name">Flexiones con apoyo (silla/mesa)</span>
+      <span class="reps" id="reps-2">10-12</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-2')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('flexiones inclinadas', 'ATHLEAN-X')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-2">Apoya las manos en una silla o mesa. Codos a 45 grados. Baja el pecho con control y empuja. Mientras más alto el apoyo, más fácil.</div>
+
+    <!-- 3 Vuelos -->
+    <div class="ex">
+      <span class="name">Vuelos laterales</span>
+      <span class="reps" id="reps-3">15</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-3')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('vuelos laterales con mancuernas', 'ATHLEAN-X')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-3">De pie, un disco en cada mano. Brazos ligeramente flexionados. Eleva los brazos hacia los lados hasta la altura de los hombros. Baja en 3 segundos.</div>
+
+    <!-- 4 Patada tríceps -->
+    <div class="ex">
+      <span class="name">Patada de tríceps</span>
+      <span class="reps" id="reps-4">15</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-4')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('patada de tríceps', 'ATHLEAN-X')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-4">Torso inclinado hacia adelante, espalda recta. Codos pegados al torso y flexionados. Sostén un disco. Extiende los brazos hacia atrás contrayendo el tríceps. Vuelve lento.</div>
+
+    <!-- 5 Superman (o Bird Dog) -->
+    <div class="ex">
+      <span class="name">Superman / Bird Dog</span>
+      <span class="reps" id="reps-5">12</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-5')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('bird dog', 'BUFF Academy')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-5"><strong>Opción A (Superman):</strong> Boca abajo, sostén un disco frente a ti. Eleva brazos, pecho y piernas. Aprieta 2 seg. <strong>Opción B (Bird Dog, más segura):</strong> En cuadrupedia, extiende brazo derecho y pierna izquierda simultáneamente. Mantén cadera estable. Alterna.</div>
+
+    <!-- 6 Curl isométrico -->
+    <div class="ex">
+      <span class="name">Curl de bíceps isométrico</span>
+      <span class="reps" id="reps-6">30 seg</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-6')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('curl de bíceps isométrico', 'ATHLEAN-X')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-6">De pie, un disco en cada mano. Sube los brazos a 90 grados (como si hicieras curl pero te detienes a la mitad) y mantén la posición con los puños apretados.</div>
+
+    <!-- 7 Sentadilla -->
+    <div class="ex">
+      <span class="name">Sentadilla con disco al pecho</span>
+      <span class="reps" id="reps-7">15</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-7')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('sentadilla con peso', 'BUFF Academy')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-7">Sostén un disco con ambas manos pegado al pecho. Haz una sentadilla bajando la cadera como si te fueras a sentar en una silla. Empuja con los talones para subir.</div>
+
+    <!-- 8 Plancha toque -->
+    <div class="ex">
+      <span class="name">Plancha con toque de hombro</span>
+      <span class="reps" id="reps-8">20 toques</span>
+      <div class="ex-actions">
+        <button class="btn-icon" onclick="toggleDetail(this, 'detail-8')">ℹ️</button>
+        <button class="btn-icon video" onclick="openVideo('plancha toque de hombro', 'ATHLEAN-X')">▶️</button>
+      </div>
+    </div>
+    <div class="ex-detail" id="detail-8">Posición de plancha sobre las manos (o rodillas). Alterna llevar la mano derecha al hombro izquierdo y viceversa, sin mover la cadera.</div>
+
+    <div class="note">💡 Si los 1.5 kg se sienten ligeros, haz las bajadas en 3-4 segundos y aumenta las repeticiones.</div>
+    <div class="note warn">⚠️ Si usas Superman y sientes molestia lumbar, cambia a Bird Dog (opción B).</div>
+  </div>
+</div>
+
+<!-- VISTA PROGRESO -->
+<div class="view" id="view-progreso">
+  <div class="progress-summary">
+    <div>
+      <div class="label">Entrenamientos completados</div>
+      <div class="pct" id="progress-pct">0%</div>
+    </div>
+    <button class="btn-reset" onclick="resetProgress()">Reset</button>
+  </div>
+  <div class="week-list" id="week-list"></div>
+</div>
+
+<script>
+  // === CONFIGURACIÓN ===
+  const STORAGE_KEY = 'rutina_mujer_v1';
+  const START_DATE = getNextMonday();
+  const END_OF_YEAR = new Date(2026, 11, 31);
+  const TRAINING_DAYS = [1, 3, 5]; // Lunes, Miércoles, Viernes
+
+  // === FECHAS ===
+  function getNextMonday() {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = (day === 1) ? 7 : (8 - day) % 7;
+    const next = new Date(today);
+    next.setDate(today.getDate() + diff);
+    next.setHours(0,0,0,0);
+    return next;
+  }
+
+  function getTodayKey() {
+    return new Date().toLocaleDateString('en-CA'); 
+  }
+
+  function formatDate(d) {
+    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+  }
+
+  function getWeekNumber(d) {
+    const start = new Date(d.getFullYear(), 0, 1);
+    const diff = d - start + (start.getTimezoneOffset() - d.getTimezoneOffset()) * 60000;
+    return Math.floor(diff / (7 * 24 * 60 * 60 * 1000)) + 1;
+  }
+
+  // === ESTADO ===
+  function loadState() {
+    try { 
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      return saved || { completed: {}, rounds: {} }; 
+    }
+    catch(e) { return { completed: {}, rounds: {} }; }
+  }
+
+  function saveState(state) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  }
+
+  let state = loadState();
+  if (!state.rounds) state.rounds = {};
+
+  // === LÓGICA DE RONDAS DIARIAS ===
+  function renderRounds() {
+    const todayKey = getTodayKey();
+    if (!state.rounds[todayKey]) {
+      state.rounds[todayKey] = [false, false, false];
+    }
+    
+    const rounds = state.rounds[todayKey];
+    const buttons = document.querySelectorAll('.round-btn');
+    
+    buttons.forEach((btn, index) => {
+      const isDone = rounds[index];
+      btn.classList.toggle('done', isDone);
+      btn.textContent = isDone ? `Ronda ${index + 1} ✓` : `Ronda ${index + 1}`;
+      
+      // Restricción secuencial: Ronda N solo se activa si N-1 está completo
+      if (index > 0 && !rounds[index - 1]) {
+        btn.disabled = true;
+      } else {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  function toggleRound(index, btn) {
+    const todayKey = getTodayKey();
+    if (!state.rounds[todayKey]) state.rounds[todayKey] = [false, false, false];
+    
+    const rounds = state.rounds[todayKey];
+
+    // Validación extra por seguridad
+    if (index > 0 && !rounds[index - 1]) return;
+
+    // Toggle del estado actual
+    rounds[index] = !rounds[index];
+
+    // Si se desmarca una ronda, desmarcar las posteriores
+    if (!rounds[index]) {
+      for (let i = index + 1; i < rounds.length; i++) {
+        rounds[i] = false;
+      }
+    }
+
+    state.rounds[todayKey] = rounds;
+
+    // Sincronizar con la pestaña de Progreso
+    // Si las 3 rondas están completas, marcar el día como terminado
+    if (rounds[0] && rounds[1] && rounds[2]) {
+      state.completed[todayKey] = true;
+    } else {
+      state.completed[todayKey] = false;
+    }
+
+    saveState(state);
+    renderRounds();
+    renderProgress(); // Actualizar la vista de progreso de fondo
+  }
+
+  // === GENERAR LISTA DE FECHAS (PROGRESO) ===
+  function generateDates() {
+    const dates = [];
+    
+    // AÑADIDO: Fecha de prueba Sábado 31 Oct
+    const testDate = new Date(2026, 9, 31); // 2026, mes 9 (Octubre)
+    dates.push(testDate);
+
+    let current = new Date(START_DATE);
+    while (current <= END_OF_YEAR) {
+      if (TRAINING_DAYS.includes(current.getDay())) {
+        // Evitar duplicar el 31 de oct si cae en día de entrenamiento
+        if (current.toLocaleDateString('en-CA') !== testDate.toLocaleDateString('en-CA')) {
+          dates.push(new Date(current));
+        }
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }
+
+  // === RENDER PROGRESO ===
+  function renderProgress() {
+    const dates = generateDates();
+    const container = document.getElementById('week-list');
+    container.innerHTML = '';
+
+    dates.forEach((d, i) => {
+      const key = d.toLocaleDateString('en-CA');
+      const done = state.completed[key] || false;
+      const weekNum = getWeekNumber(d);
+
+      const el = document.createElement('div');
+      el.className = 'week-item' + (done ? ' done' : '');
+      el.onclick = () => toggleDay(key, el);
+      
+      // Etiqueta especial para el día de prueba
+      const labelStr = (key === '2026-10-31') ? 'Prueba · Sábado 31 Oct' : `Semana ${weekNum} · Entreno ${i + 1}`;
+
+      el.innerHTML = `
+        <div class="info">
+          <div class="week-label">${labelStr}</div>
+          <div class="date">${formatDate(d)}</div>
+        </div>
+        <div class="check">✓</div>
+      `;
+      container.appendChild(el);
+    });
+
+    updateProgressPct(dates);
+  }
+
+  function toggleDay(key, el) {
+    state.completed[key] = !state.completed[key];
+    el.classList.toggle('done', state.completed[key]);
+    saveState(state);
+    updateProgressPct(generateDates());
+    
+    // Si se desmarca manualmente aquí, desmarcar las rondas de hoy si coincide
+    if (key === getTodayKey() && !state.completed[key]) {
+      state.rounds[key] = [false, false, false];
+      saveState(state);
+      renderRounds();
+    }
+  }
+
+  function updateProgressPct(dates) {
+    const total = dates.length;
+    const done = dates.filter(d => state.completed[d.toLocaleDateString('en-CA')]).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    document.getElementById('progress-pct').textContent = pct + '%';
+  }
+
+  function resetProgress() {
+    if (!confirm('¿Resetear todo el progreso?')) return;
+    state = { completed: {}, rounds: {} };
+    saveState(state);
+    renderProgress();
+    renderRounds();
+  }
+
+  // === PROGRESIÓN DE REPS ===
+  function updateReps() {
+    const today = new Date();
+    const diffTime = Math.max(0, today - START_DATE);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const weekOffset = Math.floor(diffDays / 7);
+    const increment = Math.min(6, Math.floor(weekOffset / 2) * 2);
+
+    document.getElementById('reps-1').textContent = (15 + increment);
+    document.getElementById('reps-2').textContent = (10 + increment) + '-' + (12 + increment);
+    document.getElementById('reps-3').textContent = (15 + increment);
+    document.getElementById('reps-4').textContent = (15 + increment);
+    document.getElementById('reps-5').textContent = (12 + increment);
+    document.getElementById('reps-6').textContent = (30 + increment * 2) + ' seg';
+    document.getElementById('reps-7').textContent = (15 + increment);
+    document.getElementById('reps-8').textContent = (20 + increment) + ' toques';
+  }
+
+  // === INTERACCIÓN ===
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    if (name === 'progreso') renderProgress();
+  }
+
+  function toggleDetail(btn, id) {
+    const detail = document.getElementById(id);
+    detail.classList.toggle('open');
+  }
+
+  function openVideo(query, channel) {
+    const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(channel + ' ' + query);
+    window.open(searchUrl, '_blank');
+  }
+
+  // === INIT ===
+  updateReps();
+  renderProgress();
+  renderRounds();
+</script>
+
+</body>
+</html>
